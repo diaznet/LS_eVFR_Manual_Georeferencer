@@ -1,0 +1,45 @@
+name: Build and Release Executable
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write # Required to create a release and upload assets
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Fetch all history for all branches and tags to check against main
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build executable with PyInstaller
+      run: pyinstaller --name LS_Georeferencer --onefile LS_Georeferencer.py
+
+    - name: Check if tag is on main branch
+      id: check_branch
+      # This command exits with 0 if the tagged commit is an ancestor of main, otherwise 1.
+      # continue-on-error allows the workflow to proceed even if the tag is not on main.
+      run: git merge-base --is-ancestor ${{ github.sha }} origin/main
+      continue-on-error: true
+
+    - name: Create GitHub Release
+      if: steps.check_branch.outcome == 'success'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/LS_Georeferencer.exe
+        body: "Windows executable for LS Georeferencer."
