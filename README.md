@@ -12,6 +12,7 @@ This project provides a suite of tools to process Visual Approach Charts (VAC) a
   - [Interactive Georeferencing](#interactive-georeferencing)
   - [Generate GeoTiffs](#generate-geotiffs)
   - [Generate MBTiles](#generate-mbtiles)
+  - [Visualize Georeferencing Status](#visualize-georeferencing-status)
 - [Command-Line Reference](#command-line-reference)
 - [Chart Status](#chart-status)
 
@@ -66,7 +67,7 @@ python LS_Georeferencer.py crop_debug --vac-path "path/to/pdfs" --output-path "p
 
 This will create PNG files in an `output/Debug_Layouts` folder, with all defined layouts drawn on them.
 
-![Example Debug PNG](/docs/img/example_debug.png)
+![Example Debug PNG](/assets/img/example_debug.png)
 
 Optionnally you can generate PNG tiles for all cropped areas.
 
@@ -76,7 +77,7 @@ python LS_Georeferencer.py crop_png --vac-path "path/to/pdfs" --output-path "pat
 
 This will create PNG files in an `output/Rendered_Charts` folder.
 
-![Cropped PNG files](/docs/img/cropped_png.png)
+![Cropped PNG files](/assets/img/cropped_png.png)
 
 
 ### Interactive Georeferencing
@@ -99,7 +100,7 @@ python LS_Georeferencer.py georeference --vac-path "path/to/pdfs"
     *   **`q` key:** Saves the points you've added for the current chart and moves to the next one.
 *   **Tip:** A minimum of 3 points is required for a basic transformation, but **6 or more points** spread across the chart are recommended for better accuracy.
 
-![Example Georeferencing](/docs/img/example_georeferencing.png)
+![Example Georeferencing](/assets/img/example_georeferencing.png)
 
 
 ### Generate GeoTiffs
@@ -112,7 +113,7 @@ This step runs the `crop_geotiff` mode, which processes individual georeferenced
 python LS_Georeferencer.py crop_geotiff --vac-path "path/to/pdfs" --output-path "path/to/output"
 ```
 
-![Cropped TIFF files](/docs/img/cropped_geotiffs.png)
+![Cropped TIFF files](/assets/img/cropped_geotiffs.png)
 
 Note that you can use for example QGIS to load these GeoTiffs tiles and troubleshooting potential georeferencing issues.
 
@@ -128,17 +129,30 @@ python LS_Georeferencer.py create_mbtiles --vac-path "path/to/pdfs" --output-pat
 *   It then groups these GeoTIFFs based on naming conventions (e.g., all `_VAC` charts go together).
 *   Finally, it uses GDAL's Python API to create an MBTiles file for each group, complete with overviews for the specified zoom levels.
 
-![MBTiles](/docs/img/mbtiles.png)
+![MBTiles](/assets/img/mbtiles.png)
 
+### Visualize Georeferencing Status
+
+To get a quick visual overview of which airports have been georeferenced, you can generate a status map.
+
+This requires a GeoJSON file containing the coordinates for the airports, which can be downloaded from OpenAIP.
+
+```bash
+python LS_Georeferencer.py map_status --output-path "path/to/output" --map-filename "status.png" --geojson-path "path/to/ch_apt.geojson"
+```
+
+This command creates a PNG image showing a map of Switzerland with a green dot for each georeferenced airport and a red dot for each one that is missing georeferencing data.
+
+See [below](#chart-status) for the current map.
 
 ## Command-Line Reference
 
 ```
-usage: LS_Georeferencer.py [-h] [--vac-path VAC_PATH] [--output-path OUTPUT_PATH] [--config CONFIG] [--filter FILTER [FILTER ...]] [--force] [--min-zoom MIN_ZOOM] [--max-zoom MAX_ZOOM]
-                           {crop_debug,crop_png,crop_geotiff,georeference,create_mbtiles}
+usage: LS_Georeferencer.py [-h] [--vac-path VAC_PATH] [--output-path OUTPUT_PATH] [--config CONFIG] [--filter FILTER [FILTER ...]] [--force] [--min-zoom MIN_ZOOM] [--max-zoom MAX_ZOOM] [--map-filename MAP_FILENAME] [--geojson-path GEOJSON_PATH] [--outline-tif OUTLINE_TIF]
+                           {crop_debug,crop_png,crop_geotiff,georeference,create_mbtiles,map_status}
 
 positional arguments:
-  {crop_debug,crop_png,crop_geotiff,georeference,create_mbtiles}
+  {crop_debug,crop_png,crop_geotiff,georeference,create_mbtiles,map_status}
 
 options:
   -h, --help            show this help message and exit
@@ -151,13 +165,22 @@ options:
   --force               Force re-processing of items that already have points.
   --min-zoom MIN_ZOOM   Minimum zoom level for MBTiles.
   --max-zoom MAX_ZOOM   Maximum zoom level for MBTiles.
+  --map-filename MAP_FILENAME
+                        Output filename for the status map.
+  --geojson-path GEOJSON_PATH
+                        Path to a GeoJSON file with airport coordinates, for use with 'map_status' mode.
+  --outline-tif OUTLINE_TIF
+                        Path to a georeferenced TIF file to use as a map background for 'map_status' mode.
 ```
 
 ## Chart Status
 
-This table provides an overview of the configuration status for each chart defined in `config.json`. A chart is considered "Georeferenced" if it has at least 3 Ground Control Points (GCPs). The AIRAC column indicates the cycle for which the georeferencing was performed.
+This maps and the table below provide an overview of the georeferencing status for each chart defined in `config.json`. A chart is considered "Georeferenced" if it has at least 3 Ground Control Points (GCPs). The AIRAC column indicates the cycle for which the georeferencing was performed.
 
 Pull requests are welcome.
+
+![Georeferencing Status Map](/assets/img/georeferencing_status.png)
+
 
 | Chart ID      | Layout Type | Georeferenced | AIRAC |
 |---------------|-------------|---------------|-------|
@@ -187,9 +210,9 @@ Pull requests are welcome.
 | LSPL_VAC      | type_04     | Yes           | 2602  |
 | LSPM_VAC      | type_05     | Yes           | 2602  |
 | LSPN_VAC      | type_04     | Yes           | 2602  |
-| LSPO_VAC      | type_04     | No            |       |
-| LSPR_VAC      | type_04     | No            |       |
-| LSPU_VAC      | type_04     | No            |       |
+| LSPO_VAC      | type_04     | Yes           | 2602  |
+| LSPR_VAC      | type_04     | Yes           | 2602  |
+| LSPU_VAC      | type_04     | Yes           | 2602  |
 | LSPV_VAC      | type_04     | No            |       |
 | LSTA_VAC      | type_04     | No            |       |
 | LSTB_VAC      | type_04     | No            |       |
@@ -216,8 +239,8 @@ Pull requests are welcome.
 | LSZI_VAC      | type_04     | No            |       |
 | LSZJ_VAC      | type_04     | No            |       |
 | LSZK_VAC      | type_04     | No            |       |
-| LSZL_AREA     | type_11     | No            |       |
-| LSZL_VAC      | type_01     | No            |       |
+| LSZL_AREA     | type_11     | Yes           | 2602  |
+| LSZL_VAC      | type_01     | Yes           | 2602  |
 | LSZM_VAC      | type_03     | No            |       |
 | LSZM_VAC_A    | type_03     | No            |       |
 | LSZM_VAC_D    | type_01     | No            |       |

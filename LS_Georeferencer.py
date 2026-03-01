@@ -726,9 +726,170 @@ def create_mbtiles(vac_path, output_dir, config_file, filter_ids=None, min_zoom=
     print("\nAll MBTiles created successfully.")
 
 
+def _load_airport_coords_from_geojson(geojson_path):
+    """
+    Loads airport ICAO codes and coordinates from a GeoJSON file.
+
+    The expected format is a FeatureCollection where each feature has
+    properties.icaoCode and a Point geometry. This file can be obtained
+    from the OpenAIP API.
+
+    Args:
+        geojson_path (str): Path to the GeoJSON file.
+
+    Returns:
+        dict: A dictionary mapping ICAO codes to (latitude, longitude) tuples.
+              Returns an empty dictionary if the file cannot be read or parsed.
+    """
+    coords = {}
+    if not os.path.exists(geojson_path):
+        print(f"Warning: GeoJSON file not found at {geojson_path}")
+        return coords
+
+    try:
+        with open(geojson_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        for feature in data.get("features", []):
+            props = feature.get("properties", {})
+            geom = feature.get("geometry", {})
+            icao = props.get("icaoCode")
+
+            if icao and geom and geom.get("type") == "Point":
+                lon, lat = geom.get("coordinates", [None, None])
+                if lon is not None and lat is not None:
+                    coords[icao] = (lat, lon) # Store as (Lat, Lon)
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error parsing GeoJSON file {geojson_path}: {e}")
+
+    return coords
+
+
+def create_status_map(output_dir, config_file, filename, geojson_path, outline_tif_path):
+    """
+    Generates a PNG map showing the georeferencing status of all airports,
+    using a GeoTIFF as the background.
+
+    Reads the config file to see which airports have at least one georeferenced
+    chart and plots them on the provided map.
+
+    Args:
+        output_dir (str): Path to the directory where the map image will be saved.
+        config_file (str): Path to the JSON configuration file.
+        filename (str): The name of the output PNG file.
+        geojson_path (str): Path to the GeoJSON file with airport coordinates.
+        outline_tif_path (str): Path to the georeferenced TIF file for the map background.
+    """
+    try:
+        gdal.UseExceptions()
+
+        # 1. Load background GeoTIFF and prepare canvas
+        if not os.path.exists(outline_tif_path):
+            print(f"Error: Outline TIF file not found at {outline_tif_path}")
+            return
+
+        ds = gdal.Open(outline_tif_path)
+        gt = ds.GetGeoTransform()
+        inv_gt = gdal.InvGeoTransform(gt)
+        if not inv_gt:
+            print("Error: Could not compute inverse geotransform for the outline TIF.")
+            ds = None
+            return
+
+        # Read raster data and create a BGR canvas
+        img_array = ds.GetRasterBand(1).ReadAsArray()
+        # Convert the single-band grayscale TIF to a 3-channel BGR image to serve as the canvas
+        canvas = cv2.cvtColor(img_array, cv2.COLOR_GRAY2BGR)
+
+        # 2. Setup coordinate transformation from WGS84 (airports) to the TIF's projection
+        src_srs = osr.SpatialReference()
+        src_srs.ImportFromEPSG(4326) # WGS84 for Lon/Lat
+
+        dest_srs = osr.SpatialReference()
+        dest_srs.ImportFromWkt(ds.GetProjection())
+
+        # Ensure consistent axis ordering for GDAL 3+
+        src_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        dest_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+
+        coord_transform = osr.CoordinateTransformation(src_srs, dest_srs)
+        ds = None # Close the dataset
+
+    except Exception as e:
+        print(f"Error setting up map from GeoTIFF: {e}")
+        traceback.print_exc()
+        return
+
+    # Load airport coordinates from GeoJSON
+    airport_coordinates = _load_airport_coords_from_geojson(geojson_path)
+    if not airport_coordinates:
+        print("Error: Could not load any airport coordinates. Aborting map creation.")
+        return
+
+    # Determine status of each airport
+    try:
+        _, mappings = load_config(config_file)
+    except Exception as e:
+        print(f"Error loading config: {e}"); return
+
+    georeferenced_airports = set()
+    all_airports = set()
+
+    for chart_id, mapping_data in mappings.items():
+        airport_code = chart_id[:4]
+        if airport_code.startswith("LS"):
+            all_airports.add(airport_code)
+            if "points" in mapping_data and len(mapping_data["points"]) >= 3:
+                georeferenced_airports.add(airport_code)
+
+    def world_to_pixel(lat, lon):
+        """Transforms Lat/Lon to pixel coordinates on the canvas using the GeoTIFF's metadata."""
+        # Transform WGS84 point to the TIF's coordinate system
+        easting, northing, _ = coord_transform.TransformPoint(lon, lat)
+
+        # Apply inverse geotransform to get pixel coordinates
+        px = inv_gt[0] + inv_gt[1] * easting + inv_gt[2] * northing
+        py = inv_gt[3] + inv_gt[4] * easting + inv_gt[5] * northing
+        return int(px), int(py)
+
+    # Draw airports on map
+    for code in sorted(list(all_airports)):
+        if code not in airport_coordinates:
+            print(f"Warning: Missing coordinates for {code}. Skipping.")
+            continue
+
+        lat, lon = airport_coordinates[code]
+        try:
+            px, py = world_to_pixel(lat, lon)
+
+            h, w = canvas.shape[:2]
+            if 0 <= px < w and 0 <= py < h:
+                color = (0, 180, 0) if code in georeferenced_airports else (0, 0, 255) # BGR
+                cv2.circle(canvas, (px, py), 5, color, -1)
+                cv2.putText(canvas, code, (px + 8, py + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0,0,0), 1)
+            else:
+                print(f"Warning: Airport {code} at ({lat:.4f}, {lon:.4f}) is outside the map bounds.")
+        except Exception as e:
+            print(f"Error processing airport {code}: {e}")
+
+    # Add a legend
+    cv2.circle(canvas, (20, 20), 5, (0, 180, 0), -1)
+    cv2.putText(canvas, "Georeferenced", (30, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
+    cv2.circle(canvas, (20, 45), 5, (0, 0, 255), -1)
+    cv2.putText(canvas, "Missing Georeference", (30, 49), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
+
+    # Save the output
+    output_path = os.path.join(output_dir, filename)
+    try:
+        cv2.imwrite(output_path, canvas)
+        print(f"Successfully created status map: {output_path}")
+    except Exception as e:
+        print(f"Error saving status map: {e}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=["crop_debug", "crop_png", "crop_geotiff", "georeference", "create_mbtiles"])
+    parser.add_argument("mode", choices=["crop_debug", "crop_png", "crop_geotiff", "georeference", "create_mbtiles", "map_status"])
     parser.add_argument("--vac-path", default=r".\\")
     parser.add_argument("--output-path", default=r".\\")
     parser.add_argument("--config", default="config.json")
@@ -736,6 +897,9 @@ if __name__ == "__main__":
     parser.add_argument("--force", action="store_true", help="Force re-processing of items that already have points.")
     parser.add_argument("--min-zoom", type=int, default=12, help="Minimum zoom level for MBTiles.")
     parser.add_argument("--max-zoom", type=int, default=14, help="Maximum zoom level for MBTiles.")
+    parser.add_argument("--map-filename", default="georeferencing_status.png", help="Output filename for the status map.")
+    parser.add_argument("--geojson-path", help="Path to a GeoJSON file with airport coordinates, for use with 'map_status' mode.")
+    parser.add_argument("--outline-tif", help="Path to a georeferenced TIF file to use as a map background for 'map_status' mode.")
     args = parser.parse_args()
 
     if args.mode == "crop_debug":
@@ -748,3 +912,7 @@ if __name__ == "__main__":
         georeference(args.vac_path, args.config, args.filter, args.force)
     elif args.mode == "create_mbtiles":
         create_mbtiles(args.vac_path, args.output_path, args.config, args.filter, args.min_zoom, args.max_zoom)
+    elif args.mode == "map_status":
+        if not args.geojson_path or not args.outline_tif:
+            parser.error("--geojson-path and --outline-tif are required for 'map_status' mode.")
+        create_status_map(args.output_path, args.config, args.map_filename, args.geojson_path, args.outline_tif)
