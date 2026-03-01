@@ -184,7 +184,7 @@ Pull requests are welcome.
 
 | Chart ID      | Layout Type | Georeferenced | AIRAC |
 |---------------|-------------|---------------|-------|
-| LSGB_VAC      | type_04     | No            |       |
+| LSGB_VAC      | type_04     | Yes           | 2602  |
 | LSGC_AREA     | type_03     | Yes           | 2602  |
 | LSGC_VAC      | type_01     | Yes           | 2602  |
 | LSGE_VAC      | type_04     | No            |       |
@@ -214,7 +214,7 @@ Pull requests are welcome.
 | LSPR_VAC      | type_04     | Yes           | 2602  |
 | LSPU_VAC      | type_04     | Yes           | 2602  |
 | LSPV_VAC      | type_04     | No            |       |
-| LSTA_VAC      | type_04     | No            |       |
+| LSTA_VAC      | type_04     | Yes           | 2602  |
 | LSTB_VAC      | type_04     | No            |       |
 | LSTO_VAC      | type_04     | No            |       |
 | LSTR_VAC      | type_04     | No            |       |
