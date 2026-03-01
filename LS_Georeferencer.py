@@ -621,7 +621,8 @@ def _build_mbtile_from_tiffs(tiff_files, mbtiles_path, temp_dir, min_zoom, max_z
                    creationOptions=[
                        f"MINZOOM={max_zoom}",
                        f"MAXZOOM={max_zoom}",
-                       "TILE_FORMAT=PNG"
+                       "TILE_FORMAT=PNG",
+                       "ZLEVEL=9"
                    ])
 
     # Step C: Open the new MBTiles file and build the lower zoom levels
