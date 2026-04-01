@@ -8,6 +8,11 @@ from osgeo import gdal, osr
 import cv2
 import traceback
 import json
+import tkinter as tk
+import urllib.request
+import tempfile
+
+OPENAIP_GEOJSON_URL = "https://storage.googleapis.com/29f98e10-a489-4c82-ae5e-489dbcd4912f/ch_apt.geojson"
 
 
 def parse_dms_to_dd(dms_string):
@@ -101,35 +106,80 @@ class GeoreferenceEditor:
             real_x = (x - self.offset_x) / self.scale
             real_y = (y - self.offset_y) / self.scale
 
-            # Check if click is inside the image bounds
             if 0 <= real_x < self.base_img.shape[1] and 0 <= real_y < self.base_img.shape[0]:
-                print(f"\n--- Point {len(self.points)+1} captured ---")
-                lon_str_to_save, lat_str_to_save = None, None
+                result = self._prompt_coordinates(len(self.points) + 1)
+                if result:
+                    margin_px = 10 * 4.0
+                    self.points.append({
+                        "px": [round(real_x - margin_px, 2), round(real_y - margin_px, 2)],
+                        "world": [result[0], result[1]]
+                    })
 
-                while lon_str_to_save is None:
-                    try:
-                        lon_str = input("Enter Longitude (X) in 'DD MM.MM' format: ")
-                        parse_dms_to_dd(lon_str) # Validate format
-                        lon_str_to_save = lon_str
-                    except ValueError as e:
-                        print(f"Error: {e}")
+    def _prompt_coordinates(self, point_number):
+        """Open a tkinter dialog to enter lon/lat for a captured point.
 
-                while lat_str_to_save is None:
-                    try:
-                        lat_str = input("Enter Latitude (Y) in 'DD MM.MM' format: ")
-                        parse_dms_to_dd(lat_str) # Validate format
-                        lat_str_to_save = lat_str
-                    except ValueError as e:
-                        print(f"Error: {e}")
+        Auto-inserts a space after 2 digits to separate degrees from minutes,
+        and auto-advances between fields.
 
-                # Subtract the margin to make coordinates relative to the crop_rect
-                margin_px = 10 * 4.0 # 10pt margin * 4.0 zoom
-                saved_x = real_x - margin_px
-                saved_y = real_y - margin_px
-                self.points.append({
-                    "px": [round(saved_x, 2), round(saved_y, 2)],
-                    "world": [lon_str_to_save, lat_str_to_save]
-                })
+        Returns:
+            tuple: (lon_str, lat_str) or None if cancelled.
+        """
+        result = [None]
+
+        root = tk.Tk()
+        root.title(f"Point {point_number} — Enter Coordinates")
+        root.attributes("-topmost", True)
+        root.resizable(False, False)
+        root.after(50, lambda: (root.focus_force(), lon_entry.focus_set()))
+
+        def make_auto_space(entry_widget):
+            """Returns a KeyRelease callback that inserts a space after 2 digits."""
+            def on_key(event):
+                val = entry_widget.get()
+                pos = entry_widget.index(tk.INSERT)
+                if pos == 2 and len(val) == 2 and val.isdigit():
+                    entry_widget.insert(2, " ")
+                    entry_widget.icursor(3)
+            return on_key
+
+        tk.Label(root, text="Longitude (DD MM.MM):").grid(row=0, column=0, padx=8, pady=(10, 2), sticky="w")
+        lon_entry = tk.Entry(root, width=20)
+        lon_entry.grid(row=0, column=1, padx=8, pady=(10, 2))
+        lon_entry.focus_set()
+
+        tk.Label(root, text="Latitude (DD MM.MM):").grid(row=1, column=0, padx=8, pady=2, sticky="w")
+        lat_entry = tk.Entry(root, width=20)
+        lat_entry.grid(row=1, column=1, padx=8, pady=2)
+
+        lon_entry.bind("<KeyRelease>", make_auto_space(lon_entry))
+        lat_entry.bind("<KeyRelease>", make_auto_space(lat_entry))
+
+        error_label = tk.Label(root, text="", fg="red")
+        error_label.grid(row=2, column=0, columnspan=2, padx=8)
+
+        def submit(event=None):
+            lon_str = lon_entry.get().strip()
+            lat_str = lat_entry.get().strip()
+            try:
+                parse_dms_to_dd(lon_str)
+                parse_dms_to_dd(lat_str)
+                result[0] = (lon_str, lat_str)
+                root.destroy()
+            except ValueError as e:
+                error_label.config(text=str(e))
+
+        lon_entry.bind("<Return>", lambda e: lat_entry.focus_set())
+        lat_entry.bind("<Return>", submit)
+
+        btn_frame = tk.Frame(root)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=(4, 10))
+        tk.Button(btn_frame, text="OK", width=8, command=submit).pack(side="left", padx=4)
+        tk.Button(btn_frame, text="Cancel", width=8, command=root.destroy).pack(side="left", padx=4)
+
+        root.bind("<Escape>", lambda e: root.destroy())
+
+        root.mainloop()
+        return result[0]
 
     def run(self):
         """Run the interactive georeferencing session.
@@ -525,16 +575,16 @@ def crop_geotiff(input_dir, output_dir, config_file, filter_ids=None):
                 lon_dd = parse_dms_to_dd(p["world"][0])
                 lat_dd = parse_dms_to_dd(p["world"][1])
                 gcp_list.append(gdal.GCP(
-                    lat_dd,      # world_y (Latitude)
-                    lon_dd,      # world_x (Longitude)
-                    0,           # world_z (Elevation)
-                    p["px"][0],  # pixel_x
-                    p["px"][1]   # pixel_y
+                    lon_dd,      # x (Longitude)
+                    lat_dd,      # y (Latitude)
+                    0,           # z (Elevation)
+                    p["px"][0],  # pixel
+                    p["px"][1]   # line
                 ))
 
-            # Create a full SpatialReference object for the GCPs instead of a string
             srs = osr.SpatialReference()
             srs.ImportFromEPSG(4326)
+            srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
             tmp_ds.SetGCPs(gcp_list, srs)
 
             # 4. Warp the image using the GCPs.
@@ -582,21 +632,20 @@ def _create_georeferenced_memory_dataset(pdf_path, layout_rect, points, zoom=4.0
             # This is the crucial step: explicitly mark black as nodata.
             tmp_ds.GetRasterBand(i + 1).SetNoDataValue(0)
 
-        # The GCP coordinate order for gdal.GCP is (x, y, z, pixel, line)
-        # Our 'world' is [lon, lat], so lon is x and lat is y.
         gcp_list = []
         for p in points:
             lon_dd = parse_dms_to_dd(p["world"][0])
             lat_dd = parse_dms_to_dd(p["world"][1])
             gcp_list.append(gdal.GCP(
-                lat_dd,      # world_y (Latitude)
-                lon_dd,      # world_x (Longitude)
-                0,           # world_z (Elevation)
-                p["px"][0],  # pixel_x
-                p["px"][1]   # pixel_y
+                lon_dd,      # x (Longitude)
+                lat_dd,      # y (Latitude)
+                0,           # z (Elevation)
+                p["px"][0],  # pixel
+                p["px"][1]   # line
             ))
         srs = osr.SpatialReference()
-        srs.ImportFromEPSG(4326) # WGS84 for Lon/Lat
+        srs.ImportFromEPSG(4326)
+        srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
         tmp_ds.SetGCPs(gcp_list, srs)
 
         return tmp_ds
@@ -725,6 +774,23 @@ def create_mbtiles(vac_path, output_dir, config_file, filter_ids=None, min_zoom=
         print(f"Warning: Could not clean up temporary directory '{temp_dir}': {e}")
 
     print("\nAll MBTiles created successfully.")
+
+
+def _download_openaip_geojson():
+    """Download the Swiss airports GeoJSON from OpenAIP.
+
+    Returns:
+        str: Path to the downloaded temporary file, or None on error.
+    """
+    try:
+        print(f"Downloading airport data from OpenAIP...")
+        tmp_file = os.path.join(tempfile.gettempdir(), "openaip_ls_apt.geojson")
+        urllib.request.urlretrieve(OPENAIP_GEOJSON_URL, tmp_file)
+        print(f"Downloaded to {tmp_file}")
+        return tmp_file
+    except Exception as e:
+        print(f"Error downloading GeoJSON from OpenAIP: {e}")
+        return None
 
 
 def _load_airport_coords_from_geojson(geojson_path):
@@ -899,7 +965,9 @@ if __name__ == "__main__":
     parser.add_argument("--min-zoom", type=int, default=12, help="Minimum zoom level for MBTiles.")
     parser.add_argument("--max-zoom", type=int, default=14, help="Maximum zoom level for MBTiles.")
     parser.add_argument("--map-filename", default="georeferencing_status.png", help="Output filename for the status map.")
-    parser.add_argument("--geojson-path", help="Path to a GeoJSON file with airport coordinates, for use with 'map_status' mode.")
+    geojson_group = parser.add_mutually_exclusive_group()
+    geojson_group.add_argument("--geojson-path", help="Path to a local GeoJSON file with airport coordinates, for use with 'map_status' mode.")
+    geojson_group.add_argument("--geojson-online", action="store_true", help="Download airport GeoJSON from OpenAIP instead of using a local file.")
     parser.add_argument("--outline-tif", help="Path to a georeferenced TIF file to use as a map background for 'map_status' mode.")
     args = parser.parse_args()
 
@@ -914,6 +982,15 @@ if __name__ == "__main__":
     elif args.mode == "create_mbtiles":
         create_mbtiles(args.vac_path, args.output_path, args.config, args.filter, args.min_zoom, args.max_zoom)
     elif args.mode == "map_status":
-        if not args.geojson_path or not args.outline_tif:
-            parser.error("--geojson-path and --outline-tif are required for 'map_status' mode.")
-        create_status_map(args.output_path, args.config, args.map_filename, args.geojson_path, args.outline_tif)
+        if not args.outline_tif:
+            parser.error("--outline-tif is required for 'map_status' mode.")
+        if not args.geojson_path and not args.geojson_online:
+            parser.error("Either --geojson-path or --geojson-online is required for 'map_status' mode.")
+
+        geojson_path = args.geojson_path
+        if args.geojson_online:
+            geojson_path = _download_openaip_geojson()
+            if not geojson_path:
+                parser.error("Failed to download GeoJSON from OpenAIP.")
+
+        create_status_map(args.output_path, args.config, args.map_filename, geojson_path, args.outline_tif)
