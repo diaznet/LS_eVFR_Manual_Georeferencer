@@ -135,11 +135,21 @@ python LS_Georeferencer.py create_mbtiles --vac-path "path/to/pdfs" --output-pat
 
 To get a quick visual overview of which airports have been georeferenced, you can generate a status map.
 
-This requires a GeoJSON file containing the coordinates for the airports, which can be downloaded from OpenAIP.
+This requires a GeoJSON file containing the coordinates for the airports. You can either provide a local file or download it automatically from [OpenAIP](https://www.openaip.net/).
+
+**Using a local openAIP GeoJSON file:**
 
 ```bash
-python LS_Georeferencer.py map_status --output-path "path/to/output" --map-filename "status.png" --geojson-path "path/to/ch_apt.geojson"
+python LS_Georeferencer.py map_status --output-path "path/to/output" --map-filename "status.png" --geojson-path "path/to/ch_apt.geojson" --outline-tif "path/to/LS_Outline.tif"
 ```
+
+**Downloading from OpenAIP automatically:**
+
+```bash
+python LS_Georeferencer.py map_status --output-path "path/to/output" --map-filename "status.png" --geojson-online --outline-tif "path/to/LS_Outline.tif"
+```
+
+> Note: `--geojson-path` and `--geojson-online` are mutually exclusive. You must use one or the other.
 
 This command creates a PNG image showing a map of Switzerland with a green dot for each georeferenced airport and a red dot for each one that is missing georeferencing data.
 
@@ -148,7 +158,7 @@ See [below](#chart-status) for the current map.
 ## Command-Line Reference
 
 ```
-usage: LS_Georeferencer.py [-h] [--vac-path VAC_PATH] [--output-path OUTPUT_PATH] [--config CONFIG] [--filter FILTER [FILTER ...]] [--force] [--min-zoom MIN_ZOOM] [--max-zoom MAX_ZOOM] [--map-filename MAP_FILENAME] [--geojson-path GEOJSON_PATH] [--outline-tif OUTLINE_TIF]
+usage: LS_Georeferencer.py [-h] [--vac-path VAC_PATH] [--output-path OUTPUT_PATH] [--config CONFIG] [--filter FILTER [FILTER ...]] [--force] [--min-zoom MIN_ZOOM] [--max-zoom MAX_ZOOM] [--map-filename MAP_FILENAME] [--geojson-path GEOJSON_PATH | --geojson-online] [--outline-tif OUTLINE_TIF]
                            {crop_debug,crop_png,crop_geotiff,georeference,create_mbtiles,map_status}
 
 positional arguments:
@@ -168,7 +178,8 @@ options:
   --map-filename MAP_FILENAME
                         Output filename for the status map.
   --geojson-path GEOJSON_PATH
-                        Path to a GeoJSON file with airport coordinates, for use with 'map_status' mode.
+                        Path to a local GeoJSON file with airport coordinates, for use with 'map_status' mode.
+  --geojson-online      Download airport GeoJSON from OpenAIP instead of using a local file.
   --outline-tif OUTLINE_TIF
                         Path to a georeferenced TIF file to use as a map background for 'map_status' mode.
 ```
