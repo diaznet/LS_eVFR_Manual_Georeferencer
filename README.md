@@ -195,9 +195,9 @@ Pull requests are welcome.
 
 | Chart ID      | Layout Type | Georeferenced | AIRAC |
 |---------------|-------------|---------------|-------|
-| LSGB_VAC      | type_04     | Yes           | 2602  |
-| LSGC_AREA     | type_03     | Yes           | 2602  |
-| LSGC_VAC      | type_01     | Yes           | 2602  |
+| LSGB_VAC      | type_04     | Yes           | 2603  |
+| LSGC_AREA     | type_03     | Yes           | 2603  |
+| LSGC_VAC      | type_01     | Yes           | 2603  |
 | LSGE_VAC      | type_04     | No            |       |
 | LSGG_AREA_A   | type_02     | No            |       |
 | LSGG_AREA_D   | type_02     | No            |       |
@@ -205,66 +205,66 @@ Pull requests are welcome.
 | LSGG_VAC_D    | type_01     | No            |       |
 | LSGK_VAC      | type_02     | No            |       |
 | LSGL_VAC      | type_03     | No            |       |
-| LSGN_VAC      | type_04     | No            |       |
+| LSGN_VAC      | type_04     | Yes           | 2603  |
 | LSGP_VAC      | type_04     | No            |       |
 | LSGR_VAC      | type_04     | No            |       |
-| LSGS_AREA     | type_02     | Yes           | 2602  |
-| LSGS_VAC      | type_06     | Yes           | 2602  |
+| LSGS_AREA     | type_02     | Yes           | 2603  |
+| LSGS_VAC      | type_06     | Yes           | 2603  |
 | LSGT_VAC      | type_04     | No            |       |
 | LSGY_VAC      | type_04     | No            |       |
-| LSMP_AREA     | type_03     | Yes           | 2602  |
-| LSMP_VAC      | type_01     | Yes           | 2602  |
+| LSMP_AREA     | type_03     | Yes           | 2603  |
+| LSMP_VAC      | type_01     | Yes           | 2603  |
 | LSPA_VAC      | type_04     | No            |       |
-| LSPD_VAC      | type_04     | No            |       |
+| LSPD_VAC      | type_04     | Yes           | 2603  |
 | LSPF_VAC      | type_04     | No            |       |
 | LSPH_VAC      | type_04     | No            |       |
-| LSPL_VAC      | type_04     | Yes           | 2602  |
-| LSPM_VAC      | type_05     | Yes           | 2602  |
-| LSPN_VAC      | type_04     | Yes           | 2602  |
-| LSPO_VAC      | type_04     | Yes           | 2602  |
-| LSPR_VAC      | type_04     | Yes           | 2602  |
-| LSPU_VAC      | type_04     | Yes           | 2602  |
+| LSPL_VAC      | type_04     | Yes           | 2603  |
+| LSPM_VAC      | type_05     | Yes           | 2603  |
+| LSPN_VAC      | type_04     | Yes           | 2603  |
+| LSPO_VAC      | type_04     | Yes           | 2603  |
+| LSPR_VAC      | type_04     | Yes           | 2603  |
+| LSPU_VAC      | type_04     | Yes           | 2603  |
 | LSPV_VAC      | type_04     | No            |       |
-| LSTA_VAC      | type_04     | Yes           | 2602  |
+| LSTA_VAC      | type_04     | Yes           | 2603  |
 | LSTB_VAC      | type_04     | No            |       |
-| LSTO_VAC      | type_04     | No            |       |
+| LSTO_VAC      | type_04     | Yes           | 2603  |
 | LSTR_VAC      | type_04     | No            |       |
 | LSTZ_VAC      | type_04     | No            |       |
-| LSZA_AREA     | type_03     | Yes           | 2602  |
-| LSZA_VAC      | type_01     | Yes           | 2602  |
-| LSZB_AREA     | type_03     | Yes           | 2602  |
-| LSZB_VAC_A    | type_07     | Yes           | 2602  |
-| LSZB_VAC_D    | type_08     | Yes           | 2602  |
-| LSZC_AREA     | type_03     | Yes           | 2602  |
-| LSZC_VAC      | type_01     | Yes           | 2602  |
+| LSZA_AREA     | type_03     | Yes           | 2603  |
+| LSZA_VAC      | type_01     | Yes           | 2603  |
+| LSZB_AREA     | type_03     | Yes           | 2603  |
+| LSZB_VAC_A    | type_07     | Yes           | 2603  |
+| LSZB_VAC_D    | type_08     | Yes           | 2603  |
+| LSZC_AREA     | type_03     | Yes           | 2603  |
+| LSZC_VAC      | type_01     | Yes           | 2603  |
 | LSZE_VAC      | type_04     | No            |       |
-| LSZF_VAC      | type_08     | No            |       |
+| LSZF_VAC      | type_08     | Yes           | 2603  |
 | LSZG_AREA_A   | type_12     | No            |       |
 | LSZG_AREA_D   | type_12     | No            |       |
 | LSZG_VAC_A    | type_06     | No            |       |
 | LSZG_VAC_D    | type_06     | No            |       |
-| LSZH_AREA_A   | type_02     | Yes           | 2602  |
-| LSZH_AREA_D   | type_02     | Yes           | 2602  |
-| LSZH_VAC_A    | type_01     | Yes           | 2602  |
-| LSZH_VAC_D    | type_01     | Yes           | 2602  |
-| LSZI_VAC      | type_04     | No            |       |
-| LSZJ_VAC      | type_04     | No            |       |
+| LSZH_AREA_A   | type_02     | Yes           | 2603  |
+| LSZH_AREA_D   | type_02     | Yes           | 2603  |
+| LSZH_VAC_A    | type_01     | Yes           | 2603  |
+| LSZH_VAC_D    | type_01     | Yes           | 2603  |
+| LSZI_VAC      | type_04     | yes           | 2603  |
+| LSZJ_VAC      | type_04     | Yes           |       |
 | LSZK_VAC      | type_04     | No            |       |
-| LSZL_AREA     | type_11     | Yes           | 2602  |
-| LSZL_VAC      | type_01     | Yes           | 2602  |
+| LSZL_AREA     | type_11     | Yes           | 2603  |
+| LSZL_VAC      | type_01     | Yes           | 2603  |
 | LSZM_VAC      | type_03     | No            |       |
 | LSZM_VAC_A    | type_03     | No            |       |
 | LSZM_VAC_D    | type_01     | No            |       |
-| LSZN_VAC      | type_03     | Yes           | 2602  |
-| LSZO_VAC      | type_04     | Yes           | 2602  |
+| LSZN_VAC      | type_03     | Yes           | 2603  |
+| LSZO_VAC      | type_04     | Yes           | 2603  |
 | LSZP_VAC      | type_04     | No            |       |
-| LSZQ_VAC      | type_04     | No            |       |
-| LSZR_AREA     | type_02     | Yes           | 2602  |
-| LSZR_VAC      | type_06     | Yes           | 2602  |
-| LSZS_AREA     | type_10     | Yes           | 2602  |
-| LSZS_VAC      | type_09     | Yes           | 2602  |
+| LSZQ_VAC      | type_04     | Yes           | 2603  |
+| LSZR_AREA     | type_02     | Yes           | 2603  |
+| LSZR_VAC      | type_06     | Yes           | 2603  |
+| LSZS_AREA     | type_10     | Yes           | 2603  |
+| LSZS_VAC      | type_09     | Yes           | 2603  |
 | LSZT_VAC      | type_04     | No            |       |
-| LSZU_VAC      | type_04     | Yes           | 2602  |
+| LSZU_VAC      | type_04     | Yes           | 2603  |
 | LSZV_VAC      | type_04     | No            |       |
 | LSZW_VAC      | type_04     | No            |       |
 | LSZX_VAC      | type_04     | No            |       |
