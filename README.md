@@ -224,7 +224,7 @@ Pull requests are welcome.
 | LSPO_VAC      | type_04     | Yes           | 2604  |
 | LSPR_VAC      | type_04     | Yes           | 2604  |
 | LSPU_VAC      | type_04     | Yes           | 2604  |
-| LSPV_VAC      | type_04     | No            |       |
+| LSPV_VAC      | type_04     | No            | 2607  |
 | LSTA_VAC      | type_04     | Yes           | 2604  |
 | LSTB_VAC      | type_04     | No            |       |
 | LSTO_VAC      | type_04     | Yes           | 2604  |
