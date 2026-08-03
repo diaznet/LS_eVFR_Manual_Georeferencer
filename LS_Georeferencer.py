@@ -681,6 +681,21 @@ def _build_mbtile_from_tiffs(tiff_files, mbtiles_path, temp_dir, min_zoom, max_z
     if overview_factors:
         ds.BuildOverviews("CUBIC", overview_factors)
     ds = None
+
+    # Step D: Add 'center' metadata (required by Mapbox clients for proper display)
+    import sqlite3
+    conn = sqlite3.connect(mbtiles_path)
+    cursor = conn.execute("SELECT value FROM metadata WHERE name='bounds'")
+    row = cursor.fetchone()
+    if row:
+        b = [float(x) for x in row[0].split(',')]
+        center_lon = (b[0] + b[2]) / 2
+        center_lat = (b[1] + b[3]) / 2
+        center_zoom = min_zoom
+        conn.execute("INSERT OR REPLACE INTO metadata (name, value) VALUES ('center', ?)",
+                     (f"{center_lon},{center_lat},{center_zoom}",))
+        conn.commit()
+    conn.close()
     print(f"  SUCCESS: Created {os.path.basename(mbtiles_path)}")
 
 
